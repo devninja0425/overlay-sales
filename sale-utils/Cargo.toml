@@ -1,0 +1,22 @@
+[package]
+edition = "2021"
+name = "sale-utils"
+version = "0.1.0"
+
+[features]
+default = ["std"]
+std = ["concordium-std/std"]
+u256_amount = []
+
+[dependencies]
+concordium-cis2 = "3.0.0"
+
+[dependencies.concordium-std]
+default-features = false
+version = "6.0.0"
+
+[lib]
+crate-type = ["rlib"]
+
+[profile.release]
+opt-level = "s"
