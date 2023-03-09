@@ -59,5 +59,5 @@ impl From<&str> for Tier {
 pub enum Prior {
     TOP = 1,
     SECOND,
-    NONE = 99,
+    ANY = 99,
 }

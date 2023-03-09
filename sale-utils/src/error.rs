@@ -28,17 +28,17 @@ pub enum CustomContractError {
     ContractPaused,                        //
     ContractOnly,                          //15
     AccountOnly,                           //
-    AlreadySaleStarted,                    //
-    AlreadySaleClosed,                     //
-    AlreadyDeposited,                      //
-    AlreadyRefunded,                       //20
-    NotDeposited,                          //
-    SaleNotReady,                          //
     NotMatchAmount,                        //
-    InvalidSchedule,                       //
-    InvalidInput,                          //25
+    NotDeposited,                          //
+    AlreadySaleStarted,                    //
+    AlreadySaleClosed,                     //20
+    AlreadyDeposited,                      //
+    AlreadyRefunded,                       //
+    SaleNotReady,                          //
+    SaleNotFixed,                          //
+    InvalidSchedule,                       //25
+    InvalidCcdInput,                       //
     Inappropriate,                         //
-    ColdPeriod,                            //
     DisabledForNow,                        //
 }
 
