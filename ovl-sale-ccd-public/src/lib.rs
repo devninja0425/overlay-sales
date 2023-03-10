@@ -605,7 +605,7 @@ fn contract_create_pool<S: HasStateApi>(
     ensure_eq!(
         state.status,
         SaleStatus::Fixed,
-        CustomContractError::Inappropriate.into()
+        CustomContractError::SaleNotFixed.into()
     );
 
     let sender = if let Address::Contract(contract) = ctx.sender() {
@@ -657,7 +657,7 @@ fn contract_project_claim<S: HasStateApi>(
     ensure_eq!(
         state.status,
         SaleStatus::Fixed,
-        CustomContractError::Inappropriate.into()
+        CustomContractError::SaleNotFixed.into()
     );
 
     let proj_admin = host.state().proj_admin;
@@ -856,7 +856,7 @@ fn contract_user_claim<S: HasStateApi>(
     ensure_eq!(
         state.status,
         SaleStatus::Fixed,
-        CustomContractError::Inappropriate.into()
+        CustomContractError::SaleNotFixed.into()
     );
 
     ensure!(
@@ -865,7 +865,7 @@ fn contract_user_claim<S: HasStateApi>(
     );
     ensure!(
         state.schedule.vesting_start.is_some(),
-        CustomContractError::Inappropriate.into()
+        CustomContractError::InvalidSchedule.into()
     );
     let vesting_start = state.schedule.vesting_start.unwrap();
 

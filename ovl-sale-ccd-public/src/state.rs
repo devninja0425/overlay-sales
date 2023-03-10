@@ -8,24 +8,31 @@ pub use sale_utils::{
 /// All participants can purchase only 1 unit.
 pub const TARGET_UNITS: u8 = 1;
 
+/// The contract state
 #[derive(Debug, Serial, DeserialWithState, StateClone)]
 #[concordium(state_parameter = "S")]
 pub struct State<S: HasStateApi> {
-    // base info
+    /// Account of the administrator of the entity running the IDO
     pub(crate) proj_admin: AccountAddress,
+    /// Enum for sale status
     pub(crate) status: SaleStatus,
+    /// If `true`, some functions will stop working
     pub(crate) paused: bool,
+    /// Address of Overlay for receiving sale fee
     pub(crate) addr_ovl: Address,
+    /// Address of Overlay for buy back burn
     pub(crate) addr_bbb: Address,
+    /// Number of how many fee received
     pub(crate) ovl_claimed_inc: u8,
+    /// Number of how many fee for BBB received
     pub(crate) bbb_claimed_inc: u8,
-    // dependencies
+    /// Project token contract address for RIDO
     pub(crate) project_token: Option<ContractAddress>,
-    // schedule
+    /// Sale schedule
     pub(crate) schedule: SaleSchedule,
-    // saleinfo
+    /// Information about sale
     pub(crate) saleinfo: SaleInfo,
-    // users
+    /// Sale participants
     pub(crate) participants: StateMap<Address, UserState, S>,
 }
 
@@ -180,11 +187,16 @@ impl<S: HasStateApi> State<S> {
     }
 }
 
+/// Sale Schedule
 #[derive(Debug, Serialize, SchemaType, Clone)]
 pub struct SaleSchedule {
+    /// IDO schedule(The process is split into some phases)
     pub(crate) open_at: BTreeMap<Timestamp, Prior>,
+    /// Sale End Time
     pub(crate) close_at: Timestamp,
+    /// Actual vesting_period is calculated based on this start time
     pub(crate) vesting_start: Option<Timestamp>,
+    /// User(sale particicants) can withdraw assets according to the vesting period
     pub(crate) vesting_period: BTreeMap<Duration, AllowedPercentage>,
 }
 
@@ -267,12 +279,18 @@ impl SaleSchedule {
     }
 }
 
+/// Information about sale
 #[derive(Debug, Serialize, SchemaType, Clone)]
 pub struct SaleInfo {
+    /// Price in ccd per a project token
     pub(crate) price_per_token: MicroCcd,
+    /// Amount of tokens contained in a unit
     pub(crate) token_per_unit: ContractTokenAmount,
+    /// Maximum quantity to be issued in this sale
     pub(crate) max_units: UnitsAmount,
+    /// Minimum quantity to be issued for this sale
     pub(crate) min_units: UnitsAmount,
+    /// Amount of sales completed at that point
     pub(crate) applied_units: UnitsAmount,
 }
 
@@ -320,12 +338,18 @@ impl SaleInfo {
     }
 }
 
+/// About sale participants
 #[derive(Debug, Serialize, SchemaType, Clone, PartialEq, Eq)]
 pub struct UserState {
+    /// Priority to participate in the sale
     pub(crate) prior: Prior,
+    /// If deposited, their right to receive tokens will be confirmed.
     pub(crate) deposit_ccd: Amount,
+    /// Number of unit desired(or available) to be purchased
     pub(crate) tgt_units: u8,
+    /// Number actually determined to be purchased
     pub(crate) win_units: u8,
+    /// Number of tokens received during the vesting period(neither Amount or number of claim)
     pub(crate) claimed_inc: u8,
 }
 

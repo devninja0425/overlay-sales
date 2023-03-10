@@ -607,4 +607,84 @@ mod test_user {
         //     println!("{:?}", *user_state);
         // }
     }
+
+    #[concordium_test]
+    fn test_user_claim() {
+        let accounts = vec![new_account(), new_account(), new_account()];
+
+        let schedule = SaleSchedule::new(
+            Timestamp::from_timestamp_millis(1),
+            BTreeMap::from([
+                (Timestamp::from_timestamp_millis(10), Prior::TOP),
+                (Timestamp::from_timestamp_millis(20), Prior::SECOND),
+            ]),
+            Timestamp::from_timestamp_millis(30),
+            BTreeMap::from([
+                (Duration::from_millis(10), 25),
+                (Duration::from_millis(20), 40),
+                (Duration::from_millis(30), 35),
+            ]),
+        )
+        .ok();
+        let saleinfo = SaleInfo::new(5_000_000, 200.into(), 100, 50).ok();
+
+        let mut state_builder = TestStateBuilder::new();
+        let mut state = initial_state(&mut state_builder, schedule, saleinfo);
+        state.status = SaleStatus::Fixed;
+        state.project_token = Some(ContractAddress::new(1, 0));
+        state.schedule.vesting_start = Some(Timestamp::from_timestamp_millis(50));
+        state.saleinfo.applied_units = 80;
+
+        for acc in accounts.iter() {
+            state.participants.insert(
+                Address::from(*acc),
+                UserState {
+                    prior: Prior::TOP,
+                    deposit_ccd: Amount::from_micro_ccd(5_000_000 * 200 * 1),
+                    tgt_units: TARGET_UNITS,
+                    win_units: 1,
+                    claimed_inc: 0,
+                },
+            );
+        }
+
+        let mut host = TestHost::new(state, state_builder);
+        host.setup_mock_entrypoint(
+            ContractAddress::new(1, 0),
+            OwnedEntrypointName::new_unchecked("transfer".into()),
+            MockFn::returning_ok(()),
+        );
+
+        let mut ctx = TestReceiveContext::empty();
+        ctx.set_self_address(ContractAddress::new(0, 0));
+        ctx.set_owner(OVL_TEAM_ACC);
+        ctx.set_sender(Address::from(accounts[0]));
+
+        ctx.set_metadata_slot_time(Timestamp::from_timestamp_millis(60));
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+
+        ctx.set_metadata_slot_time(Timestamp::from_timestamp_millis(70));
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+
+        ctx.set_metadata_slot_time(Timestamp::from_timestamp_millis(80));
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+
+        ctx.set_metadata_slot_time(Timestamp::from_timestamp_millis(90));
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+
+        ctx.set_sender(Address::from(accounts[1]));
+        ctx.set_metadata_slot_time(Timestamp::from_timestamp_millis(100));
+        let ret: ContractResult<()> = contract_user_claim(&ctx, &mut host);
+        claim!(ret.is_ok(), "Results in rejection");
+    }
 }
