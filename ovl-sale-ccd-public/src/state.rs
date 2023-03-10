@@ -105,7 +105,7 @@ impl<S: HasStateApi> State<S> {
     }
 
     pub(crate) fn whitelist(&mut self, user: &Address, prior: Prior, tgt_units: u8) {
-        // #[Caution] if the user exists, the state is overwritten.
+        // [#Caution] if the user exists, the state is overwritten.
         let _ = self
             .participants
             .entry(*user)
@@ -135,6 +135,7 @@ impl<S: HasStateApi> State<S> {
     //     Ok(())
     // }
 
+    #[allow(dead_code)]
     pub(crate) fn check_listed(&mut self, user: &Address) -> bool {
         self.participants.entry(*user).is_occupied()
     }

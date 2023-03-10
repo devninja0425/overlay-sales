@@ -234,8 +234,52 @@ mod test_ovlteam {
         );
     }
 
+    #[concordium_test]
+    fn test_whitelisted_contract_account() {
+        let mut state_builder = TestStateBuilder::new();
+        let mut state = initial_state(&mut state_builder, None, None);
+        let mut host = TestHost::new(state, state_builder);
+
+        let params = vec![
+            AllowedUserParams {
+                user: Address::Account(new_account()),
+                prior: Prior::TOP,
+            },
+            AllowedUserParams {
+                user: Address::Account(new_account()),
+                prior: Prior::TOP,
+            },
+            AllowedUserParams {
+                user: Address::Account(new_account()),
+                prior: Prior::SECOND,
+            },
+            AllowedUserParams {
+                user: Address::Contract(ContractAddress::new(123, 0)),
+                prior: Prior::SECOND,
+            },
+            AllowedUserParams {
+                user: Address::Account(new_account()),
+                prior: Prior::ANY,
+            },
+        ];
+
+        let params_bytes: Vec<u8> = to_bytes(&params);
+        let ctx = receive_ctx(
+            OVL_TEAM_ACC,
+            OVL_TEAM_ACC,
+            Timestamp::from_timestamp_millis(5),
+            &params_bytes,
+        );
+        let error: ContractResult<()> = contract_whitelisting(&ctx, &mut host);
+        expect_error(
+            error,
+            CustomContractError::AccountOnly.into(),
+            "this call should fail when contract address is registered",
+        );
+    }
+
     #[concordium_quickcheck(num_tests = 10)]
-    fn test_whitelisted_pbt(participants: Vec<Address>, prior: Vec<u8>) -> bool {
+    fn test_whitelisted_pbt(participants: Vec<AccountAddress>, prior: Vec<u8>) -> bool {
         let mut state_builder = TestStateBuilder::new();
         let mut state = initial_state(&mut state_builder, None, None);
         let mut host = TestHost::new(state, state_builder);
@@ -244,7 +288,7 @@ mod test_ovlteam {
         let mut params = Vec::new();
         for (n, addr) in participants.into_iter().enumerate() {
             params.push(AllowedUserParams {
-                user: addr,
+                user: Address::from(addr),
                 prior: match prior.get(n) {
                     Some(x) => match x {
                         x if x > &50 => Prior::TOP,

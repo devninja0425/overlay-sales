@@ -198,7 +198,7 @@ fn contract_set_fixed<S: HasStateApi>(
 
 /// Parameter type for the contract function `whitelisting`.
 /// Currently user can be both account and contract.
-/// [TODO!] But need to consider when user can be contract.
+/// [#TODO] But need to consider when user can be contract.
 #[derive(Debug, Serialize, SchemaType)]
 struct AllowedUserParams {
     /// Users address to be whitelisted
@@ -242,7 +242,12 @@ fn contract_whitelisting<S: HasStateApi>(
 
     // all can purchase only 1 unit;
     for AllowedUserParams { user, prior } in params {
-        state.whitelist(&user, prior, TARGET_UNITS);
+        if let Address::Account(_) = user {
+            state.whitelist(&user, prior, TARGET_UNITS);
+        } else {
+            // [#TODO] Only support AccountAddress for now.
+            bail!(CustomContractError::AccountOnly.into())
+        };
     }
 
     state.status = SaleStatus::Ready;
@@ -455,7 +460,7 @@ fn contract_change_tge<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> ContractResult<()> {
-    //[TODO!] no need multiple people check to change?
+    //[#TODO] no need multiple people check to change?
     ensure!(
         ctx.sender().matches_account(&ctx.owner()),
         ContractError::Unauthorized
@@ -485,7 +490,7 @@ fn contract_change_pjtoken<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> ContractResult<()> {
-    //[TODO!] no need multiple people check to change?
+    //[#TODO] no need multiple people check to change?
     ensure!(
         ctx.sender().matches_account(&ctx.owner()),
         ContractError::Unauthorized
@@ -503,7 +508,7 @@ fn contract_change_pjtoken<S: HasStateApi>(
 
 /// Set project token contract.
 ///
-/// Caller: [TODO!] not decided yet
+/// Caller: [#TODO] not decided yet
 /// Reject if:
 /// - Fails to parse parameter
 /// - Already set the contract address
@@ -618,7 +623,7 @@ fn contract_create_pool<S: HasStateApi>(
     let params: OnReceivingCis2Params<ContractTokenId, ContractTokenAmount> =
         ctx.parameter_cursor().get()?;
 
-    //[TODO!] Check this func is only called after the sale is over.
+    //[#TODO] Check this func is only called after the sale is over.
     // if not need project_refund func
     let amount = state.saleinfo.amount_of_pjtoken();
     ensure!(
@@ -808,7 +813,7 @@ fn contract_user_quit<S: HasStateApi>(
     let user_addr = if let Address::Account(addr) = sender {
         addr
     } else {
-        // [TODO!] If need to transfer to Contract, consider invoke_contract.
+        // [#TODO] If need to transfer to Contract, consider invoke_contract.
         // But in that case, the contract need to implement specific entrypoint.
         bail!(CustomContractError::AccountOnly.into())
     };
