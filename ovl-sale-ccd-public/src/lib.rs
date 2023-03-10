@@ -11,8 +11,6 @@ use concordium_std::*;
 use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 use state::{State, *};
 
-const TARGET_UNITS: u8 = 1;
-
 // =======================================================
 // - upgradability
 // - overflow
@@ -730,7 +728,7 @@ fn contract_user_deposit<S: HasStateApi>(
     ensure!(room > 0, CustomContractError::AlreadySaleClosed.into());
 
     let sender = ctx.sender();
-    let user = state.get_user_any(&sender, TARGET_UNITS)?;
+    let user = state.get_user_any(&sender)?;
 
     // check already deposited
     ensure!(

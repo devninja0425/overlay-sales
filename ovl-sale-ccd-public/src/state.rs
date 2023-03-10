@@ -1,9 +1,12 @@
 use collections::BTreeMap;
 use concordium_std::{SchemaType, Serialize, *};
-pub(crate) use sale_utils::{
+pub use sale_utils::{
     error::{ContractError, ContractResult, CustomContractError},
     types::*,
 };
+
+/// All participants can purchase only 1 unit.
+pub const TARGET_UNITS: u8 = 1;
 
 #[derive(Debug, Serial, DeserialWithState, StateClone)]
 #[concordium(state_parameter = "S")]
@@ -109,15 +112,11 @@ impl<S: HasStateApi> State<S> {
             .or_insert_with(|| UserState::new(prior, Amount::zero(), tgt_units));
     }
 
-    pub(crate) fn get_user_any(
-        &mut self,
-        user: &Address,
-        tgt_units: u8,
-    ) -> ContractResult<UserState> {
+    pub(crate) fn get_user_any(&mut self, user: &Address) -> ContractResult<UserState> {
         let user = self
             .participants
             .entry(*user)
-            .or_insert_with(|| UserState::new(Prior::ANY, Amount::zero(), tgt_units));
+            .or_insert_with(|| UserState::new(Prior::ANY, Amount::zero(), TARGET_UNITS));
         let user = user.get_ref();
         Ok(user.clone())
     }
@@ -457,6 +456,79 @@ mod tests {
                 claimed_inc: 0
             },
             "something wrong with user1 after deposit!"
+        );
+    }
+
+    #[test]
+    fn test_get_user_ary() {
+        // initialize
+        let mut state_builder = TestStateBuilder::new();
+        let params = init_parameter(BTreeMap::new());
+        let schedule = SaleSchedule::new(
+            Timestamp::from_timestamp_millis(1),
+            params.open_at,
+            params.close_at,
+            params.vesting_period,
+        )
+        .unwrap_abort();
+
+        let saleinfo = SaleInfo::new(
+            params.price_per_token,
+            params.token_per_unit,
+            params.max_units,
+            params.min_units,
+        )
+        .unwrap_abort();
+        let mut state = State::new(
+            &mut state_builder,
+            params.proj_admin,
+            params.addr_ovl,
+            params.addr_bbb,
+            schedule,
+            saleinfo,
+        );
+
+        state
+            .schedule
+            .check_sale_priority(Timestamp::from_timestamp_millis(30));
+
+        // whitelisted
+        let users = vec![(&USER1_ADDR, Prior::TOP), (&USER2_ADDR, Prior::SECOND)];
+        for v in users.into_iter() {
+            state.whitelist(v.0, v.1, 1);
+        }
+
+        assert!(state.check_listed(&USER1_ADDR), "user1 should exist!");
+        assert!(!state.check_listed(&USER3_ADDR), "user3 should not on list");
+
+        assert_eq!(
+            state.get_user(&USER1_ADDR),
+            Ok(UserState {
+                prior: Prior::TOP,
+                deposit_ccd: Amount::zero(),
+                tgt_units: 1,
+                win_units: 0,
+                claimed_inc: 0
+            }),
+            "something wrong with user1 before deposit!"
+        );
+
+        assert_eq!(
+            state.get_user(&USER3_ADDR),
+            Err(ContractError::Unauthorized),
+            "something wrong with user1 after deposit!"
+        );
+
+        assert_eq!(
+            state.get_user_any(&USER3_ADDR),
+            Ok(UserState {
+                prior: Prior::ANY,
+                deposit_ccd: Amount::zero(),
+                tgt_units: 1,
+                win_units: 0,
+                claimed_inc: 0
+            }),
+            "something wrong with user1 before deposit!"
         );
     }
 
