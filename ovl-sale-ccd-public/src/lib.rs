@@ -288,12 +288,11 @@ fn contract_ovl_claim<S: HasStateApi>(
 
     ensure!(
         state.project_token.is_some(),
-        CustomContractError::Inappropriate.into()
+        CustomContractError::NotSetProjectToken.into()
     );
-
     ensure!(
         state.schedule.vesting_start.is_some(),
-        CustomContractError::InvalidSchedule.into()
+        CustomContractError::NotSetTge.into()
     );
 
     let vesting_start = state.schedule.vesting_start.unwrap();
@@ -369,16 +368,16 @@ fn contract_bbb_claim<S: HasStateApi>(
 
     ensure!(
         state.status == SaleStatus::Fixed,
-        CustomContractError::Inappropriate.into()
+        CustomContractError::SaleNotFixed.into()
     );
 
     ensure!(
         state.project_token.is_some(),
-        CustomContractError::Inappropriate.into()
+        CustomContractError::NotSetProjectToken.into()
     );
     ensure!(
         state.schedule.vesting_start.is_some(),
-        CustomContractError::InvalidSchedule.into()
+        CustomContractError::NotSetTge.into()
     );
 
     let vesting_start = state.schedule.vesting_start.unwrap();
@@ -861,11 +860,11 @@ fn contract_user_claim<S: HasStateApi>(
 
     ensure!(
         state.project_token.is_some(),
-        CustomContractError::Inappropriate.into()
+        CustomContractError::NotSetProjectToken.into()
     );
     ensure!(
         state.schedule.vesting_start.is_some(),
-        CustomContractError::InvalidSchedule.into()
+        CustomContractError::NotSetTge.into()
     );
     let vesting_start = state.schedule.vesting_start.unwrap();
 

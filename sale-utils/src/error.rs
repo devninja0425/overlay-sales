@@ -38,6 +38,8 @@ pub enum CustomContractError {
     SaleNotFixed,                          //
     InvalidSchedule,                       //25
     InvalidCcdInput,                       //
+    NotSetTge,                             //
+    NotSetProjectToken,                    //
     Inappropriate,                         //
     DisabledForNow,                        //
 }
