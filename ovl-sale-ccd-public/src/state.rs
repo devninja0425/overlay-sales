@@ -303,6 +303,10 @@ impl SaleInfo {
     ) -> Result<Self, CustomContractError> {
         ensure!(min_units < max_units, CustomContractError::Inappropriate);
 
+        if price_per_token.checked_mul(token_per_unit.0).is_none() {
+            bail!(CustomContractError::OverflowError);
+        }
+
         Ok(SaleInfo {
             price_per_token,
             token_per_unit,
@@ -482,6 +486,14 @@ mod tests {
             },
             "something wrong with user1 after deposit!"
         );
+    }
+
+    #[test]
+    fn test_sale_info_overflow() {
+        let price_per_token = 2;
+        let token_per_unit = 18_446_744_073_709_551_615;
+        SaleInfo::new(price_per_token, token_per_unit.into(), 1000, 100)
+            .expect_err("should overflow!");
     }
 
     #[test]
@@ -773,61 +785,12 @@ mod tests {
     }
 
     #[test]
-    fn test_vesting_overflow() {
-        let first_per = 25;
-        let max = 5_000_000;
-        let applied = 6_000_000;
-        let token_per_unit = 200_000_000_000_000_000;
-
-        let mut state_builder = TestStateBuilder::new();
-        let params = init_parameter(BTreeMap::new());
-        let schedule = SaleSchedule::new(
-            Timestamp::from_timestamp_millis(1),
-            BTreeMap::from([
-                (Timestamp::from_timestamp_millis(10), Prior::TOP),
-                (Timestamp::from_timestamp_millis(20), Prior::SECOND),
-            ]),
-            Timestamp::from_timestamp_millis(30),
-            BTreeMap::from([
-                (Duration::from_millis(10), first_per),
-                (Duration::from_millis(20), 40),
-                (Duration::from_millis(30), 35),
-            ]),
-        )
-        .unwrap();
-        let saleinfo = SaleInfo::new(5_000_000, token_per_unit.into(), max, 100).unwrap();
-
-        let mut state = State::new(
-            &mut state_builder,
-            params.proj_admin,
-            params.addr_ovl,
-            params.addr_bbb,
-            schedule,
-            saleinfo,
-        );
-        let cur_inc = 0;
-        let total_units = cmp::min(state.saleinfo.max_units, applied);
-        let ret = state.calc_vesting_amount(
-            Timestamp::from_timestamp_millis(61),
-            Timestamp::from_timestamp_millis(50),
-            total_units as u64,
-            PUBLIC_RIDO_FEE_OVL,
-            cur_inc,
-        );
-
-        claim_eq!(
-            ret,
-            Err(ContractError::from(CustomContractError::OverflowError)),
-            "Should overflow!"
-        );
-    }
-
-    #[test]
     fn test_vesting_check_u64() {
         let first_per = 25;
-        let max = 100;
-        let applied = 100;
-        let token_per_unit = 1_844_674_407_370_955_161;
+        let max = 1000;
+        let applied = 1000;
+        let price_per_token = 100;
+        let token_per_unit = 18_446_744_073_709_551;
 
         let mut state_builder = TestStateBuilder::new();
         let params = init_parameter(BTreeMap::new());
@@ -845,7 +808,7 @@ mod tests {
             ]),
         )
         .unwrap();
-        let saleinfo = SaleInfo::new(15_000_000, token_per_unit.into(), max, 10).unwrap();
+        let saleinfo = SaleInfo::new(price_per_token, token_per_unit.into(), max, 10).unwrap();
 
         let mut state = State::new(
             &mut state_builder,
@@ -874,9 +837,58 @@ mod tests {
 
         claim_eq!(
             ret.0 .0,
-            2305843009213693951,
+            230584300921369387,
             "Something wrong with vesting calcuration!"
         );
-        claim_eq!(ret.1, 1, "Something wrong with claimed_inc!");
+    }
+
+    #[test]
+    fn test_vesting_overflow() {
+        let first_per = 25;
+        let max = 100_000;
+        let applied = 100_000;
+        let price_per_token = 100;
+        let token_per_unit = 18_446_744_073_709_551;
+
+        let mut state_builder = TestStateBuilder::new();
+        let params = init_parameter(BTreeMap::new());
+        let schedule = SaleSchedule::new(
+            Timestamp::from_timestamp_millis(1),
+            BTreeMap::from([
+                (Timestamp::from_timestamp_millis(10), Prior::TOP),
+                (Timestamp::from_timestamp_millis(20), Prior::SECOND),
+            ]),
+            Timestamp::from_timestamp_millis(30),
+            BTreeMap::from([
+                (Duration::from_millis(10), first_per),
+                (Duration::from_millis(20), 40),
+                (Duration::from_millis(30), 35),
+            ]),
+        )
+        .unwrap();
+        let saleinfo = SaleInfo::new(price_per_token, token_per_unit.into(), max, 100).unwrap();
+
+        let mut state = State::new(
+            &mut state_builder,
+            params.proj_admin,
+            params.addr_ovl,
+            params.addr_bbb,
+            schedule,
+            saleinfo,
+        );
+        let cur_inc = 0;
+        let total_units = cmp::min(state.saleinfo.max_units, applied);
+        let ret = state.calc_vesting_amount(
+            Timestamp::from_timestamp_millis(61),
+            Timestamp::from_timestamp_millis(50),
+            total_units as u64,
+            PUBLIC_RIDO_FEE_OVL,
+            cur_inc,
+        );
+        claim_eq!(
+            ret,
+            Err(ContractError::from(CustomContractError::OverflowError)),
+            "Should overflow!"
+        );
     }
 }
