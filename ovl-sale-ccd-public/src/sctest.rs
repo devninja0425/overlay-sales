@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::{test_infrastructure::*, *};
 use core::fmt::Debug;
 use std::sync::atomic::{AtomicU8, Ordering};

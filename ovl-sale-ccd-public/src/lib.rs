@@ -789,7 +789,7 @@ fn contract_user_quit<S: HasStateApi>(
     // currently noone can quit
     ensure!(false, CustomContractError::DisabledForNow.into());
 
-    let mut state = host.state_mut();
+    let state = host.state_mut();
     ensure!(!state.paused, CustomContractError::ContractPaused.into());
     ensure_eq!(
         state.status,
@@ -847,7 +847,7 @@ fn contract_user_claim<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> ContractResult<()> {
-    let mut state = host.state_mut();
+    let state = host.state_mut();
 
     ensure!(!state.paused, CustomContractError::ContractPaused.into());
     ensure_eq!(

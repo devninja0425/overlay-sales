@@ -222,6 +222,7 @@ impl SaleSchedule {
         })
     }
 
+    #[allow(dead_code)]
     pub(crate) fn is_sale_opened(&self, now: Timestamp) -> bool {
         if now < *self.open_at.first_key_value().unwrap().0 {
             true
@@ -345,12 +346,8 @@ mod tests {
     use super::*;
     use crate::sctest::init_parameter;
     use crate::test_infrastructure::*;
+    #[allow(unused)]
     use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
-
-    const OVL_TEAM_ACC: AccountAddress = AccountAddress([0u8; 32]);
-    const OVL_TEAM_ADDR: Address = Address::Account(OVL_TEAM_ACC);
-    const PJ_ADMIN_ACC: AccountAddress = AccountAddress([1u8; 32]);
-    const PJ_ADMIN_ADDR: Address = Address::Account(PJ_ADMIN_ACC);
 
     const USER1_ACC: AccountAddress = AccountAddress([10u8; 32]);
     const USER1_ADDR: Address = Address::Account(USER1_ACC);
@@ -445,7 +442,7 @@ mod tests {
         );
 
         // deposit = allocation fixed
-        state.deposit(&USER1_ADDR, Amount::from_ccd(100), 1);
+        let _ = state.deposit(&USER1_ADDR, Amount::from_ccd(100), 1);
 
         // vesting
         assert!(state.check_listed(&USER1_ADDR), "user1 should exist!");
