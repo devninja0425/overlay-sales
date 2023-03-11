@@ -12,6 +12,7 @@ use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 use state::{State, *};
 
 // =======================================================
+// - in case Suspended
 // - upgradability
 // - overflow
 // - reentrancy
@@ -137,9 +138,11 @@ fn contract_set_unpaused<S: HasStateApi>(
 /// Caller: contract owner only
 /// Reject if:
 /// - The sender is not the contract instance owner.
+/// - Fails to parse parameter
 #[receive(
     contract = "pub_rido_ccd",
-    name = "setPrepare",
+    name = "setStatus",
+    parameter = "SaleStatus",
     error = "ContractError",
     mutable
 )]
@@ -151,8 +154,8 @@ fn contract_set_prepare<S: HasStateApi>(
         ctx.sender().matches_account(&ctx.owner()),
         ContractError::Unauthorized
     );
-    let mut state = host.state_mut();
-    state.status = SaleStatus::Prepare;
+    let status: SaleStatus = ctx.parameter_cursor().get()?;
+    host.state_mut().status = status;
 
     Ok(())
 }
@@ -586,6 +589,7 @@ fn contract_set_tge<S: HasStateApi>(
 /// Invoker: Project Admin only
 /// Reject if:
 /// - Contract is paused
+/// - Fails to parse parameter
 /// - Status is not Fixed
 /// - The sender is not the project token contract
 /// - The quantity to be deposited differs from the quantity sold in the sale.
