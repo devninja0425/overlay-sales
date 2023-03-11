@@ -792,21 +792,24 @@ fn contract_user_quit<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> ContractResult<()> {
-    // currently noone can quit
-    ensure!(false, CustomContractError::DisabledForNow.into());
-
     let state = host.state_mut();
     ensure!(!state.paused, CustomContractError::ContractPaused.into());
-    ensure_eq!(
-        state.status,
-        SaleStatus::Ready,
-        CustomContractError::SaleNotReady.into()
-    );
 
-    ensure!(
-        state.schedule.is_on_sale(ctx.metadata().slot_time()),
-        CustomContractError::InvalidSchedule.into()
-    );
+    if state.status != SaleStatus::Suspend {
+        // currently no one can quit
+        ensure!(false, CustomContractError::DisabledForNow.into());
+
+        ensure_eq!(
+            state.status,
+            SaleStatus::Ready,
+            CustomContractError::SaleNotReady.into()
+        );
+
+        ensure!(
+            state.schedule.is_on_sale(ctx.metadata().slot_time()),
+            CustomContractError::InvalidSchedule.into()
+        );
+    }
 
     let sender = ctx.sender();
     let user = state.get_user(&sender)?;
