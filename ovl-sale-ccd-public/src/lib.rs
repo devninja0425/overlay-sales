@@ -752,9 +752,9 @@ fn contract_user_deposit<S: HasStateApi>(
         CustomContractError::AlreadySaleClosed.into()
     );
 
-    let calced_amount = state.saleinfo.calc_price_per_unit() * win_units as u64;
+    let calced_price: Amount = state.saleinfo.calc_price_per_unit() * win_units as u64;
     ensure!(
-        amount == Amount::from_micro_ccd(calced_amount),
+        amount == calced_price,
         CustomContractError::InvalidCcdInput.into()
     );
     let _ = state.deposit(&sender, amount, win_units)?;

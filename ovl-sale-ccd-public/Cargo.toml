@@ -3,7 +3,7 @@ authors = ["daratao"]
 description = "overlay sale for usdc pair"
 edition = "2021"
 name = "ovl-sale-ccd-public"
-version = "0.2.0"
+version = "0.2.2"
 
 [features]
 crypto-primitives = ["concordium-std/crypto-primitives"]

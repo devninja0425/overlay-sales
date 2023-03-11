@@ -303,6 +303,7 @@ impl SaleInfo {
     ) -> Result<Self, CustomContractError> {
         ensure!(min_units < max_units, CustomContractError::Inappropriate);
 
+        // Price_per_unit must not exceed 18_446_744_073_709_551_615
         if price_per_token.checked_mul(token_per_unit.0).is_none() {
             bail!(CustomContractError::OverflowError);
         }
@@ -337,8 +338,9 @@ impl SaleInfo {
         // self.token_per_unit * self.max_units as u64
     }
 
-    pub(crate) fn calc_price_per_unit(&self) -> MicroCcd {
-        self.price_per_token * self.token_per_unit.0
+    pub(crate) fn calc_price_per_unit(&self) -> Amount {
+        let price = self.price_per_token * self.token_per_unit.0;
+        Amount::from_micro_ccd(price)
     }
 }
 
@@ -490,10 +492,28 @@ mod tests {
 
     #[test]
     fn test_sale_info_overflow() {
-        let price_per_token = 2;
-        let token_per_unit = 18_446_744_073_709_551_615;
+        let price_per_token = 2000_000_000; //2000ccd
+        let token_per_unit = 9_300_000_000;
         SaleInfo::new(price_per_token, token_per_unit.into(), 1000, 100)
             .expect_err("should overflow!");
+    }
+
+    #[test]
+    fn test_divide() {
+        let price_per_token: u64 = 2_000_000; //2000ccd
+        let token_per_unit: u64 = 900;
+        let sale = SaleInfo::new(price_per_token, token_per_unit.into(), 1000, 100).unwrap();
+        let price = sale.calc_price_per_unit();
+        claim_eq!(
+            price,
+            Amount::from_micro_ccd(price_per_token * token_per_unit),
+            "Something wrong with calc price!"
+        );
+        claim_eq!(
+            price,
+            Amount::from_ccd(price_per_token / 10_u64.pow(6) * token_per_unit),
+            "Something wrong with calc price!"
+        );
     }
 
     #[test]
