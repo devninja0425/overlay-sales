@@ -123,7 +123,7 @@ fn contract_set_unpaused<S: HasStateApi>(
     Ok(())
 }
 
-/// Set status to prepare, but is not normally used.
+/// To change the status to something arbitrary, but is not normally used.
 ///
 /// Caller: contract owner only
 /// Reject if:
@@ -136,7 +136,7 @@ fn contract_set_unpaused<S: HasStateApi>(
     error = "ContractError",
     mutable
 )]
-fn contract_set_prepare<S: HasStateApi>(
+fn contract_set_status<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> ContractResult<()> {
