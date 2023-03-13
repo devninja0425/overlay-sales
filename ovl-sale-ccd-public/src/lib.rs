@@ -3,11 +3,10 @@ mod sctest;
 mod state;
 mod view;
 
-use collections::BTreeMap;
 use concordium_cis2::{
     AdditionalData, OnReceivingCis2Params, Receiver, TokenIdUnit, Transfer, TransferParams,
 };
-use concordium_std::*;
+use concordium_std::{collections::BTreeMap, *};
 use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 use state::{State, *};
 
