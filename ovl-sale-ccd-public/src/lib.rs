@@ -11,16 +11,6 @@ use concordium_std::*;
 use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 use state::{State, *};
 
-// =======================================================
-// - in case Suspended
-// - upgradability
-// - overflow
-// - reentrancy
-// - commitee for update sale info
-// - what if pjadmin send token directly this contract(no way to send back)
-// - consider AA(or ContractAccount) for security, but its complex to implement
-// since ContractAddress and AccountAddress have different specifications unlike Eth.
-
 ///
 ///
 ///
