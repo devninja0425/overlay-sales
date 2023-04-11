@@ -187,8 +187,66 @@ impl<S: HasStateApi> State<S> {
     }
 }
 
+#[cfg(any(feature = "wasm-test", test))]
+/// implements PartialEq for `claim_eq` inside test functions.
+/// this implementation will be build only when `concordium-std/wasm-test` feature is active.
+/// (e.g. when launched by `cargo concordium test`)
+impl<S: HasStateApi> PartialEq for State<S> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.proj_admin != other.proj_admin {
+            return false;
+        }
+        if self.status != other.status {
+            return false;
+        }
+        if self.paused != other.paused {
+            return false;
+        }
+        if self.addr_ovl != other.addr_ovl {
+            return false;
+        }
+        if self.addr_bbb != other.addr_bbb {
+            return false;
+        }
+        if self.ovl_claimed_inc != other.ovl_claimed_inc {
+            return false;
+        }
+        if self.bbb_claimed_inc != other.bbb_claimed_inc {
+            return false;
+        }
+        if self.project_token != other.project_token {
+            return false;
+        }
+        if self.schedule != other.schedule {
+            return false;
+        }
+        if self.saleinfo != other.saleinfo {
+            return false;
+        }
+        if self.participants.iter().count() != other.participants.iter().count() {
+            return false;
+        }
+        for (my_user_address, my_user_state) in self.participants.iter() {
+            let other_user_state = other.participants.get(&my_user_address);
+            if other_user_state.is_none() {
+                return false;
+            }
+            let other_user_state = other_user_state.unwrap();
+            if my_user_state.clone() != other_user_state.clone() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+}
+
 /// Sale Schedule
 #[derive(Debug, Serialize, SchemaType, Clone)]
+#[cfg_attr(any(feature = "wasm-test", test), derive(PartialEq))]
 pub struct SaleSchedule {
     /// IDO schedule(The process is split into some phases)
     pub(crate) open_at: BTreeMap<Timestamp, Prior>,
@@ -281,6 +339,7 @@ impl SaleSchedule {
 
 /// Information about sale
 #[derive(Debug, Serialize, SchemaType, Clone)]
+#[cfg_attr(any(feature = "wasm-test", test), derive(PartialEq))]
 pub struct SaleInfo {
     /// Price in ccd per a project token
     pub(crate) price_per_token: MicroCcd,
