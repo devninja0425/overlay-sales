@@ -12,7 +12,7 @@ std = ["concordium-std/std", "concordium-cis2/std"]
 
 [dependencies]
 concordium-cis2 = "3.0.0"
-concordium-std = "6.0.0"
+concordium-std = "6.1.0"
 sale-utils = {path = "../sale-utils"}
 
 [lib]
@@ -23,4 +23,4 @@ codegen-units = 1
 opt-level = "s"
 
 [dev-dependencies]
-concordium-std = {version = "6.0.0", features = ["concordium-quickcheck"]}
+concordium-std = {version = "6.1.0", features = ["concordium-quickcheck"]}
