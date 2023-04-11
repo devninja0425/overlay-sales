@@ -1,4 +1,3 @@
-#![allow(unused)]
 use crate::{test_infrastructure::*, *};
 use core::fmt::Debug;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -130,23 +129,11 @@ where
     claim_eq!(actual, err);
 }
 
+mod overlay_team;
+
 #[concordium_cfg_test]
 mod test_ovlteam {
     use super::*;
-
-    #[concordium_test]
-    fn test_init() {
-        let parameter_bytes: Vec<u8> = to_bytes(&init_parameter(BTreeMap::new()));
-        let ctx = init_ctx(
-            OVL_TEAM_ACC,
-            Timestamp::from_timestamp_millis(1),
-            &parameter_bytes,
-        );
-        let mut state_builder = TestStateBuilder::new();
-
-        let state_result = contract_init(&ctx, &mut state_builder);
-        state_result.expect_report("Contract initialization results in error");
-    }
 
     #[concordium_test]
     fn test_init_cant_start_back_in_time() {
