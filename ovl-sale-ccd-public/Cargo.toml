@@ -9,11 +9,12 @@ version = "0.2.2"
 crypto-primitives = ["concordium-std/crypto-primitives"]
 default = ["std"]
 std = ["concordium-std/std", "concordium-cis2/std"]
+wasm-test = ["concordium-std/wasm-test", "concordium-std/concordium-quickcheck"]
 
 [dependencies]
 concordium-cis2 = "3.0.0"
-concordium-std = "6.1.0"
-sale-utils = {path = "../sale-utils"}
+concordium-std = { version = "6.1.0", default-features = false }
+sale-utils = { path = "../sale-utils" }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -23,4 +24,4 @@ codegen-units = 1
 opt-level = "s"
 
 [dev-dependencies]
-concordium-std = {version = "6.1.0", features = ["concordium-quickcheck"]}
+concordium-std = { version = "6.1.0", features = ["concordium-quickcheck"] }

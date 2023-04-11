@@ -1,4 +1,5 @@
 //! This Contract is used for public sale with CCD on the Overlay IDO platform.
+#[cfg(any(feature = "wasm-test", test))]
 mod sctest;
 mod state;
 mod view;
