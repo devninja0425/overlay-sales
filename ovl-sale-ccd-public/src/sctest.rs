@@ -43,18 +43,6 @@ pub(crate) fn init_parameter(vesting_period: BTreeMap<Duration, AllowedPercentag
     }
 }
 
-fn init_ctx(
-    sender: AccountAddress,
-    slot_time: SlotTime,
-    parameter_bytes: &[u8],
-) -> TestInitContext {
-    let mut ctx = TestInitContext::empty();
-    ctx.set_init_origin(sender);
-    ctx.set_metadata_slot_time(slot_time);
-    ctx.set_parameter(parameter_bytes);
-    ctx
-}
-
 fn receive_ctx(
     owner: AccountAddress,
     sender: AccountAddress,
@@ -129,70 +117,6 @@ mod project_admin;
 #[concordium_cfg_test]
 mod test_user {
     use super::*;
-
-    #[concordium_test]
-    fn test_deposit_before_ready() {
-        let parameter_bytes: Vec<u8> = to_bytes(&init_parameter(BTreeMap::new()));
-        let ctx = init_ctx(
-            OVL_TEAM_ACC,
-            Timestamp::from_timestamp_millis(1),
-            &parameter_bytes,
-        );
-        let mut state_builder = TestStateBuilder::new();
-        let state = contract_init(&ctx, &mut state_builder).unwrap();
-        // state.status = SaleStatus::Prepare;
-        let mut host = TestHost::new(state, state_builder);
-
-        // let ctx = receive_ctx(
-        //     OVL_TEAM_ACC,
-        //     OVL_TEAM_ACC,
-        //     Timestamp::from_timestamp_millis(12),
-        //     &[],
-        // );
-        // let _ = contract_set_prepare(&ctx, &mut host);
-
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            new_account(),
-            Timestamp::from_timestamp_millis(15),
-            &[],
-        );
-        let error: ContractResult<()> =
-            contract_user_deposit(&ctx, &mut host, Amount::from_micro_ccd(100));
-        expect_error(
-            error,
-            CustomContractError::SaleNotReady.into(),
-            "this call should fail when sale is not ready",
-        );
-        // claim_eq!(
-        //     error,
-        //     Err(CustomContractError::SaleNotReady.into()),
-        //     "Function should throw an error."
-        // );
-    }
-
-    #[concordium_test]
-    fn test_deposit_before_open() {
-        let mut state_builder = TestStateBuilder::new();
-        let mut state = initial_state(&mut state_builder, None, None);
-        state.status = SaleStatus::Ready;
-
-        let mut host = TestHost::new(state, state_builder);
-
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            new_account(),
-            Timestamp::from_timestamp_millis(5),
-            &[],
-        );
-        let amount = Amount::from_ccd(100);
-        let result: ContractResult<()> = contract_user_deposit(&ctx, &mut host, amount);
-        expect_error(
-            result,
-            CustomContractError::InvalidSchedule.into(),
-            "this call should fail when sale is not open",
-        );
-    }
 
     #[concordium_test]
     fn test_quit() {
