@@ -123,6 +123,7 @@ where
 }
 
 mod overlay_team;
+mod project_admin;
 
 #[concordium_cfg_test]
 mod test_proj {
