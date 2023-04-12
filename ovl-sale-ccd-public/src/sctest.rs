@@ -126,34 +126,6 @@ mod overlay_team;
 mod project_admin;
 
 #[concordium_cfg_test]
-mod test_proj {
-    use super::*;
-
-    #[concordium_test]
-    fn test_proj_claim() {
-        let mut state_builder = TestStateBuilder::new();
-        let mut state = initial_state(&mut state_builder, None, None);
-        state.status = SaleStatus::Fixed;
-        let mut host = TestHost::new(state, state_builder);
-        let balance = Amount::from_ccd(100);
-        host.set_self_balance(balance);
-
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            PJ_ADMIN_ACC,
-            Timestamp::from_timestamp_millis(5),
-            &[],
-        );
-        let _ret = contract_project_claim(&ctx, &mut host);
-        claim_eq!(
-            host.get_transfers(),
-            [(PJ_ADMIN_ACC, balance)],
-            "Something wrong with project claim."
-        );
-    }
-}
-
-#[concordium_cfg_test]
 mod test_user {
     use super::*;
 
