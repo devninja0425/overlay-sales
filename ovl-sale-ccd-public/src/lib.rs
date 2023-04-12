@@ -408,6 +408,7 @@ fn contract_bbb_claim<S: HasStateApi>(
             data: AdditionalData::empty(),
         };
         let project_token = state.project_token.unwrap();
+        // TODO should we use invoke_contract_read_only?
         let _ = host.invoke_contract(
             &project_token,
             &TransferParams::from(vec![transfer]),
