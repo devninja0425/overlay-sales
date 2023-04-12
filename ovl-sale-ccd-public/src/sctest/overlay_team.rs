@@ -993,7 +993,6 @@ mod tests {
             participants: state_builder.new_map(),
         };
         let mut host = TestHost::new(initial_state, state_builder);
-        host.set_self_balance(Amount::from_ccd(100));
 
         let params: Vec<AllowedUserParams> = participants
             .into_iter()
@@ -1020,5 +1019,252 @@ mod tests {
         // execute func
         let ret = contract_whitelisting(&ctx, &mut host);
         ret.is_ok()
+    }
+
+    #[concordium_test]
+    /// Test that ovlClaim successfully calculate total amount to claim & transfer it.
+    /// Only calculate for first vesting period
+    fn test_ovl_claim() {
+        let mut state_builder = TestStateBuilder::new();
+        let self_address = ContractAddress::new(10, 0);
+        let admin = AccountAddress([0u8; 32]);
+        let proj_admin = AccountAddress([1u8; 32]);
+        let project_token_address = ContractAddress {
+            index: 200,
+            subindex: 0,
+        };
+        let addr_ovl_account_address = AccountAddress([2u8; 32]);
+        let addr_ovl = Address::Account(addr_ovl_account_address);
+        let addr_bbb = Address::Contract(ContractAddress {
+            index: 100,
+            subindex: 0,
+        });
+        let open_at = BTreeMap::from([
+            (Timestamp::from_timestamp_millis(10), Prior::TOP),
+            (Timestamp::from_timestamp_millis(20), Prior::SECOND),
+        ]);
+        let close_at = Timestamp::from_timestamp_millis(30);
+        let vesting_start = Timestamp::from_timestamp_millis(50);
+        let slot_time = Timestamp::from_timestamp_millis(60);
+        let vesting_period = BTreeMap::from([
+            (Duration::from_millis(10), 25),
+            (Duration::from_millis(11), 40),
+            (Duration::from_millis(12), 35),
+        ]);
+        let max_units = 100;
+        let min_units = 50;
+        let applied_units = 80;
+
+        // 200 * 80 * 0.05 * 0.25 = 200
+        let expected_claim_balance = ContractTokenAmount::from(200u64);
+        let price_per_token = 5_000_000;
+        let token_per_unit = 200.into();
+
+        let initial_state = State {
+            proj_admin,
+            status: SaleStatus::Fixed,
+            paused: false,
+            addr_ovl,
+            addr_bbb,
+            ovl_claimed_inc: 0,
+            bbb_claimed_inc: 0,
+            project_token: Some(project_token_address),
+            schedule: SaleSchedule {
+                open_at: open_at.clone(),
+                close_at,
+                vesting_start: Some(vesting_start.clone()),
+                vesting_period: vesting_period.clone(),
+            },
+            saleinfo: SaleInfo {
+                price_per_token,
+                token_per_unit,
+                max_units,
+                min_units,
+                applied_units,
+            },
+            participants: state_builder.new_map(),
+        };
+        let expected_state = State {
+            proj_admin,
+            status: SaleStatus::Fixed,
+            paused: false,
+            addr_ovl,
+            addr_bbb,
+            ovl_claimed_inc: 1,
+            bbb_claimed_inc: 0,
+            project_token: Some(project_token_address),
+            schedule: SaleSchedule {
+                open_at: open_at.clone(),
+                close_at,
+                vesting_start: Some(vesting_start.clone()),
+                vesting_period: vesting_period.clone(),
+            },
+            saleinfo: SaleInfo {
+                price_per_token,
+                token_per_unit,
+                max_units,
+                min_units,
+                applied_units,
+            },
+            participants: state_builder.new_map(),
+        };
+        let mut host = TestHost::new(initial_state, state_builder);
+        host.setup_mock_entrypoint(
+            project_token_address,
+            OwnedEntrypointName::new_unchecked("transfer".into()),
+            MockFn::new_v1(move |parameter, _amount, _balance, _state| {
+                let transfer = Transfer {
+                    from: Address::from(self_address),
+                    to: Receiver::Account(addr_ovl_account_address),
+                    token_id: TokenIdUnit(),
+                    amount: expected_claim_balance,
+                    data: AdditionalData::empty(),
+                };
+                let transfer_params = TransferParams::from(vec![transfer]);
+                let expected_bytes = to_bytes(&transfer_params);
+                let param_bytes = parameter.as_ref();
+                claim_eq!(param_bytes, expected_bytes);
+                Ok((false, ()))
+            }),
+        );
+
+        // create params
+        let mut ctx = TestReceiveContext::empty();
+        ctx.set_self_address(self_address);
+        ctx.set_owner(admin);
+        ctx.set_sender(Address::Account(admin));
+        ctx.set_metadata_slot_time(slot_time);
+
+        // execute function
+        let result = contract_ovl_claim(&ctx, &mut host);
+        claim!(result.is_ok());
+        claim_eq!(
+            *host.state(),
+            expected_state,
+            "state has been changed unexpectedly..."
+        );
+    }
+
+    #[concordium_test]
+    /// Test that ovlClaim successfully calculate total amount to claim & transfer it.
+    /// Calculate for 1st & 2nd vesting period
+    fn test_ovl_claim2() {
+        let mut state_builder = TestStateBuilder::new();
+        let self_address = ContractAddress::new(10, 0);
+        let admin = AccountAddress([0u8; 32]);
+        let proj_admin = AccountAddress([1u8; 32]);
+        let project_token_address = ContractAddress {
+            index: 200,
+            subindex: 0,
+        };
+        let addr_ovl_account_address = AccountAddress([2u8; 32]);
+        let addr_ovl = Address::Account(addr_ovl_account_address);
+        let addr_bbb = Address::Contract(ContractAddress {
+            index: 100,
+            subindex: 0,
+        });
+        let open_at = BTreeMap::from([
+            (Timestamp::from_timestamp_millis(10), Prior::TOP),
+            (Timestamp::from_timestamp_millis(20), Prior::SECOND),
+        ]);
+        let close_at = Timestamp::from_timestamp_millis(30);
+        let vesting_start = Timestamp::from_timestamp_millis(50);
+        let slot_time = Timestamp::from_timestamp_millis(70);
+        let vesting_period = BTreeMap::from([
+            (Duration::from_millis(10), 25),
+            (Duration::from_millis(20), 40),
+            (Duration::from_millis(30), 35),
+        ]);
+        let max_units = 1000;
+        let min_units = 500;
+        let applied_units = 800;
+        // 200 * 800 * 0.05 * 0.25 + 200 * 800 * 0.05 * 0.40
+        let expected_claim_balance = ContractTokenAmount::from(5200u64);
+        let price_per_token = 5_000_000;
+        let token_per_unit = 200.into();
+
+        let initial_state = State {
+            proj_admin,
+            status: SaleStatus::Fixed,
+            paused: false,
+            addr_ovl,
+            addr_bbb,
+            ovl_claimed_inc: 0,
+            bbb_claimed_inc: 0,
+            project_token: Some(project_token_address),
+            schedule: SaleSchedule {
+                open_at: open_at.clone(),
+                close_at,
+                vesting_start: Some(vesting_start.clone()),
+                vesting_period: vesting_period.clone(),
+            },
+            saleinfo: SaleInfo {
+                price_per_token,
+                token_per_unit,
+                max_units,
+                min_units,
+                applied_units,
+            },
+            participants: state_builder.new_map(),
+        };
+        let expected_state = State {
+            proj_admin,
+            status: SaleStatus::Fixed,
+            paused: false,
+            addr_ovl,
+            addr_bbb,
+            ovl_claimed_inc: 2,
+            bbb_claimed_inc: 0,
+            project_token: Some(project_token_address),
+            schedule: SaleSchedule {
+                open_at: open_at.clone(),
+                close_at,
+                vesting_start: Some(vesting_start.clone()),
+                vesting_period: vesting_period.clone(),
+            },
+            saleinfo: SaleInfo {
+                price_per_token,
+                token_per_unit,
+                max_units,
+                min_units,
+                applied_units,
+            },
+            participants: state_builder.new_map(),
+        };
+        let mut host = TestHost::new(initial_state, state_builder);
+        host.setup_mock_entrypoint(
+            project_token_address,
+            OwnedEntrypointName::new_unchecked("transfer".into()),
+            MockFn::new_v1(move |parameter, _amount, _balance, _state| {
+                let transfer = Transfer {
+                    from: Address::from(self_address),
+                    to: Receiver::Account(addr_ovl_account_address),
+                    token_id: TokenIdUnit(),
+                    amount: expected_claim_balance,
+                    data: AdditionalData::empty(),
+                };
+                let transfer_params = TransferParams::from(vec![transfer]);
+                let expected_bytes = to_bytes(&transfer_params);
+                let param_bytes = parameter.as_ref();
+                claim_eq!(param_bytes, expected_bytes);
+                Ok((false, ()))
+            }),
+        );
+
+        // create params
+        let mut ctx = TestReceiveContext::empty();
+        ctx.set_self_address(self_address);
+        ctx.set_owner(admin);
+        ctx.set_sender(Address::Account(admin));
+        ctx.set_metadata_slot_time(slot_time);
+
+        // execute function
+        let result = contract_ovl_claim(&ctx, &mut host);
+        claim!(result.is_ok());
+        claim_eq!(
+            *host.state(),
+            expected_state,
+            "state has been changed unexpectedly..."
+        );
     }
 }
