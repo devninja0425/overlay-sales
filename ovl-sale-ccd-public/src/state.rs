@@ -430,7 +430,7 @@ impl UserState {
     }
 }
 
-#[cfg(any(feature = "wasm-test", test))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::sctest::init_parameter;

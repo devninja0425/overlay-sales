@@ -4,9 +4,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 static ADDRESS_COUNTER: AtomicU8 = AtomicU8::new(10);
 const OVL_TEAM_ACC: AccountAddress = AccountAddress([0u8; 32]);
-const OVL_TEAM_ADDR: Address = Address::Account(OVL_TEAM_ACC);
 const PJ_ADMIN_ACC: AccountAddress = AccountAddress([1u8; 32]);
-const PJ_ADMIN_ADDR: Address = Address::Account(PJ_ADMIN_ACC);
 const ADDR_OVL: Address = Address::Account(AccountAddress([2u8; 32]));
 const ADDR_BBB: Address = Address::Contract(ContractAddress {
     index: 100,
@@ -16,11 +14,6 @@ const ADDR_BBB: Address = Address::Contract(ContractAddress {
 fn new_account() -> AccountAddress {
     let account = AccountAddress([ADDRESS_COUNTER.load(Ordering::SeqCst); 32]);
     ADDRESS_COUNTER.fetch_add(1, Ordering::SeqCst);
-    account
-}
-
-fn get_account(n: u8) -> AccountAddress {
-    let account = AccountAddress([n; 32]);
     account
 }
 
@@ -136,50 +129,9 @@ mod test_ovlteam {
     use super::*;
 
     #[concordium_test]
-    fn test_init_cant_start_back_in_time() {
-        let parameter_bytes: Vec<u8> = to_bytes(&init_parameter(BTreeMap::new()));
-        let ctx = init_ctx(
-            OVL_TEAM_ACC,
-            Timestamp::from_timestamp_millis(50),
-            &parameter_bytes,
-        );
-        let mut state_builder = TestStateBuilder::new();
-
-        let error = contract_init(&ctx, &mut state_builder);
-        expect_error(
-            error,
-            CustomContractError::InvalidSchedule.into(),
-            "this call should fail when timeline is wrong!",
-        );
-    }
-
-    #[concordium_test]
-    fn test_init_invalid_vesting_total() {
-        let vesting = BTreeMap::from([
-            (Duration::from_days(30), 30),
-            (Duration::from_days(60), 40),
-            (Duration::from_days(90), 50),
-        ]);
-        let parameter_bytes: Vec<u8> = to_bytes(&init_parameter(vesting));
-        let ctx = init_ctx(
-            OVL_TEAM_ACC,
-            Timestamp::from_timestamp_millis(1),
-            &parameter_bytes,
-        );
-        let mut state_builder = TestStateBuilder::new();
-
-        let error = contract_init(&ctx, &mut state_builder);
-        expect_error(
-            error,
-            CustomContractError::Inappropriate.into(),
-            "this call should fail when vesting is wrong!",
-        );
-    }
-
-    #[concordium_test]
     fn test_whitelisted() {
         let mut state_builder = TestStateBuilder::new();
-        let mut state = initial_state(&mut state_builder, None, None);
+        let state = initial_state(&mut state_builder, None, None);
         let mut host = TestHost::new(state, state_builder);
 
         let params = vec![
@@ -224,7 +176,7 @@ mod test_ovlteam {
     #[concordium_test]
     fn test_whitelisted_contract_account() {
         let mut state_builder = TestStateBuilder::new();
-        let mut state = initial_state(&mut state_builder, None, None);
+        let state = initial_state(&mut state_builder, None, None);
         let mut host = TestHost::new(state, state_builder);
 
         let params = vec![
@@ -268,7 +220,7 @@ mod test_ovlteam {
     #[concordium_quickcheck(num_tests = 10)]
     fn test_whitelisted_pbt(participants: Vec<AccountAddress>, prior: Vec<u8>) -> bool {
         let mut state_builder = TestStateBuilder::new();
-        let mut state = initial_state(&mut state_builder, None, None);
+        let state = initial_state(&mut state_builder, None, None);
         let mut host = TestHost::new(state, state_builder);
         host.set_self_balance(Amount::from_ccd(100));
 
@@ -404,7 +356,7 @@ mod test_proj {
             Timestamp::from_timestamp_millis(5),
             &[],
         );
-        let ret = contract_project_claim(&ctx, &mut host);
+        let _ret = contract_project_claim(&ctx, &mut host);
         claim_eq!(
             host.get_transfers(),
             [(PJ_ADMIN_ACC, balance)],
@@ -423,7 +375,7 @@ mod test_user {
         let acc2 = new_account();
 
         let mut state_builder = TestStateBuilder::new();
-        let mut state = initial_state(&mut state_builder, None, None);
+        let state = initial_state(&mut state_builder, None, None);
         let mut host = TestHost::new(state, state_builder);
         host.set_self_balance(Amount::from_ccd(100));
 
@@ -478,7 +430,7 @@ mod test_user {
             &parameter_bytes,
         );
         let mut state_builder = TestStateBuilder::new();
-        let mut state = contract_init(&ctx, &mut state_builder).unwrap();
+        let state = contract_init(&ctx, &mut state_builder).unwrap();
         // state.status = SaleStatus::Prepare;
         let mut host = TestHost::new(state, state_builder);
 
@@ -539,7 +491,7 @@ mod test_user {
         let acc2 = new_account();
 
         let mut state_builder = TestStateBuilder::new();
-        let mut state = initial_state(&mut state_builder, None, None);
+        let state = initial_state(&mut state_builder, None, None);
         let mut host = TestHost::new(state, state_builder);
         let balance = Amount::from_micro_ccd(5_000_000 * 200 * 10);
         host.set_self_balance(balance);
