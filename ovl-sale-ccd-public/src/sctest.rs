@@ -123,63 +123,12 @@ where
 }
 
 mod overlay_team;
+mod participant;
 mod project_admin;
 
 #[concordium_cfg_test]
 mod test_user {
     use super::*;
-
-    #[concordium_test]
-    fn test_deposit() {
-        let acc1 = new_account();
-        let acc2 = new_account();
-
-        let mut state_builder = TestStateBuilder::new();
-        let state = initial_state(&mut state_builder, None, None);
-        let mut host = TestHost::new(state, state_builder);
-        host.set_self_balance(Amount::from_ccd(100));
-
-        let params = vec![
-            AllowedUserParams {
-                user: Address::Account(acc1),
-                prior: Prior::TOP,
-            },
-            AllowedUserParams {
-                user: Address::Account(acc2),
-                prior: Prior::SECOND,
-            },
-        ];
-        let params_bytes: Vec<u8> = to_bytes(&params);
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            OVL_TEAM_ACC,
-            Timestamp::from_timestamp_millis(5),
-            &params_bytes,
-        );
-        let _ = contract_whitelisting(&ctx, &mut host);
-
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            acc1,
-            Timestamp::from_timestamp_millis(15),
-            &[],
-        );
-        let amount = Amount::from_micro_ccd(5_000_000 * 200 * 1);
-        let result: ContractResult<()> = contract_user_deposit(&ctx, &mut host, amount);
-        // println!("{:?}", result);
-        claim!(result.is_ok(), "Results in rejection");
-
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            acc2,
-            Timestamp::from_timestamp_millis(25),
-            &[],
-        );
-        let amount = Amount::from_micro_ccd(5_000_000 * 200 * 1);
-        let result: ContractResult<()> = contract_user_deposit(&ctx, &mut host, amount);
-        // println!("{:?}", result);
-        claim!(result.is_ok(), "Results in rejection");
-    }
 
     #[concordium_test]
     fn test_deposit_before_ready() {
