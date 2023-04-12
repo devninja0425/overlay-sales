@@ -60,6 +60,7 @@ impl<S: HasStateApi> State<S> {
         }
     }
 
+    // TODO should we remove &mut (should not be self mutable function)
     pub(crate) fn calc_vesting_amount(
         &mut self,
         now: Timestamp,
@@ -147,6 +148,7 @@ impl<S: HasStateApi> State<S> {
         self.participants.entry(*user).is_occupied()
     }
 
+    // TODO should we remove &mut (should not be self mutable function)
     pub(crate) fn get_user(&mut self, user: &Address) -> ContractResult<UserState> {
         let user = self
             .participants
@@ -433,17 +435,49 @@ impl UserState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sctest::init_parameter;
     use crate::test_infrastructure::*;
+    use crate::InitParams;
     #[allow(unused)]
     use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 
+    const PJ_ADMIN_ACC: AccountAddress = AccountAddress([1u8; 32]);
+    const ADDR_OVL: Address = Address::Account(AccountAddress([2u8; 32]));
+    const ADDR_BBB: Address = Address::Contract(ContractAddress {
+        index: 100,
+        subindex: 0,
+    });
     const USER1_ACC: AccountAddress = AccountAddress([10u8; 32]);
     const USER1_ADDR: Address = Address::Account(USER1_ACC);
     const USER2_ACC: AccountAddress = AccountAddress([11u8; 32]);
     const USER2_ADDR: Address = Address::Account(USER2_ACC);
     const USER3_ACC: AccountAddress = AccountAddress([12u8; 32]);
     const USER3_ADDR: Address = Address::Account(USER3_ACC);
+
+    fn init_parameter(vesting_period: BTreeMap<Duration, AllowedPercentage>) -> InitParams {
+        InitParams {
+            proj_admin: PJ_ADMIN_ACC,
+            addr_ovl: ADDR_OVL,
+            addr_bbb: ADDR_BBB,
+            open_at: BTreeMap::from([
+                (Timestamp::from_timestamp_millis(10), Prior::TOP),
+                (Timestamp::from_timestamp_millis(20), Prior::SECOND),
+            ]),
+            close_at: Timestamp::from_timestamp_millis(30),
+            max_units: 100,
+            min_units: 50,
+            price_per_token: 5_000_000,
+            token_per_unit: 200.into(),
+            vesting_period: if vesting_period.is_empty() {
+                BTreeMap::from([
+                    (Duration::from_days(1), 25),
+                    (Duration::from_days(2), 40),
+                    (Duration::from_days(3), 35),
+                ])
+            } else {
+                vesting_period
+            },
+        }
+    }
 
     #[test]
     fn test_invalid_schedule() {
