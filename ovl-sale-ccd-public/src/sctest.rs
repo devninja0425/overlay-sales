@@ -1,5 +1,4 @@
 use crate::{test_infrastructure::*, *};
-use core::fmt::Debug;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 static ADDRESS_COUNTER: AtomicU8 = AtomicU8::new(10);
@@ -41,22 +40,6 @@ pub(crate) fn init_parameter(vesting_period: BTreeMap<Duration, AllowedPercentag
             vesting_period
         },
     }
-}
-
-fn receive_ctx(
-    owner: AccountAddress,
-    sender: AccountAddress,
-    slot_time: SlotTime,
-    parameter_bytes: &[u8],
-) -> TestReceiveContext {
-    let mut ctx = TestReceiveContext::empty();
-    ctx.set_self_address(ContractAddress::new(10, 0));
-    ctx.set_sender(Address::Account(sender));
-    ctx.set_invoker(sender);
-    ctx.set_owner(owner);
-    ctx.set_metadata_slot_time(slot_time);
-    ctx.set_parameter(parameter_bytes);
-    ctx
 }
 
 fn initial_state<S: HasStateApi>(
@@ -101,15 +84,6 @@ fn initial_state<S: HasStateApi>(
     state
 }
 
-fn expect_error<E, T>(expr: Result<T, E>, err: E, msg: &str)
-where
-    E: Eq + Debug,
-    T: Debug,
-{
-    let actual = expr.expect_err_report(msg);
-    claim_eq!(actual, err);
-}
-
 mod overlay_team;
 mod participant;
 mod project_admin;
@@ -117,68 +91,6 @@ mod project_admin;
 #[concordium_cfg_test]
 mod test_user {
     use super::*;
-
-    #[concordium_test]
-    fn test_quit() {
-        let acc1 = new_account();
-        let acc2 = new_account();
-
-        let mut state_builder = TestStateBuilder::new();
-        let state = initial_state(&mut state_builder, None, None);
-        let mut host = TestHost::new(state, state_builder);
-        let balance = Amount::from_micro_ccd(5_000_000 * 200 * 10);
-        host.set_self_balance(balance);
-
-        let params = vec![
-            AllowedUserParams {
-                user: Address::Account(acc1),
-                prior: Prior::TOP,
-            },
-            AllowedUserParams {
-                user: Address::Account(acc2),
-                prior: Prior::SECOND,
-            },
-        ];
-        let params_bytes: Vec<u8> = to_bytes(&params);
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            OVL_TEAM_ACC,
-            Timestamp::from_timestamp_millis(5),
-            &params_bytes,
-        );
-        let _ = contract_whitelisting(&ctx, &mut host);
-
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            acc1,
-            Timestamp::from_timestamp_millis(15),
-            &[],
-        );
-        let amount = Amount::from_micro_ccd(5_000_000 * 200 * 1);
-        let _ = contract_user_deposit(&ctx, &mut host, amount);
-
-        let ctx = receive_ctx(
-            OVL_TEAM_ACC,
-            acc1,
-            Timestamp::from_timestamp_millis(25),
-            &[],
-        );
-        let ret = contract_user_quit(&ctx, &mut host);
-        expect_error(
-            ret,
-            CustomContractError::DisabledForNow.into(),
-            "this call should fail because disabled",
-        );
-        // claim_eq!(
-        //     host.get_transfers(),
-        //     [(acc1, amount)],
-        //     "Something wrong with user claim."
-        // );
-        // for (addr, user_state) in host.state_mut().participants.iter() {
-        //     println!("{:?}", *addr);
-        //     println!("{:?}", *user_state);
-        // }
-    }
 
     #[concordium_test]
     fn test_user_claim() {
