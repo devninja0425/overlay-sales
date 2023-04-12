@@ -895,6 +895,7 @@ fn contract_user_claim<S: HasStateApi>(
             from: Address::from(ctx.self_address()),
             to,
             token_id: TokenIdUnit(),
+            // TODO: we can simplify by using copy. i.e. `amount,`
             amount: ContractTokenAmount::from(amount),
             data: AdditionalData::empty(),
         };
