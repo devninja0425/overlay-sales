@@ -11,9 +11,7 @@ use concordium_std::{collections::BTreeMap, *};
 use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 use state::{State, *};
 
-///
-///
-///
+/// The parameter schema for `init` function.
 #[derive(Debug, Serialize, SchemaType)]
 pub struct InitParams {
     /// Account of the administrator of the entity running the IDO
@@ -322,7 +320,6 @@ fn contract_ovl_claim<S: HasStateApi>(
             data: AdditionalData::empty(),
         };
         let project_token = state.project_token.unwrap();
-        // TODO should we use invoke_contract_read_only?
         let _ = host.invoke_contract(
             &project_token,
             &TransferParams::from(vec![transfer]),
@@ -408,7 +405,6 @@ fn contract_bbb_claim<S: HasStateApi>(
             data: AdditionalData::empty(),
         };
         let project_token = state.project_token.unwrap();
-        // TODO should we use invoke_contract_read_only?
         let _ = host.invoke_contract(
             &project_token,
             &TransferParams::from(vec![transfer]),
@@ -897,14 +893,11 @@ fn contract_user_claim<S: HasStateApi>(
             from: Address::from(ctx.self_address()),
             to,
             token_id: TokenIdUnit(),
-            // TODO: we can simplify by using copy. i.e. `amount,`
-            amount: ContractTokenAmount::from(amount),
+            amount,
             data: AdditionalData::empty(),
         };
 
         let project_token = state.project_token.unwrap();
-
-        // TODO should we use invoke_contract_read_only?
         let _ = host.invoke_contract(
             &project_token,
             &TransferParams::from(vec![transfer]),
