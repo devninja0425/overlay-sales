@@ -1,9 +1,17 @@
 [package]
-authors = ["daratao"]
-description = "overlay sale for usdc pair"
-edition = "2021"
 name = "ovl-sale-ccd-public"
+description = "Concordium smart contract modelling sales information of projects listed in OVERLAY."
 version = "0.2.2"
+authors = [
+    "daratao",
+    "Hiroki Tanaka <hiroki.tanaka@kumano-te.com>"
+]
+edition = "2021"
+license = "MPL-2.0"
+publish = false
+homepage = "https://overlay.global/"
+repository = "https://github.com/overlaydao/overlay-sales"
+rust-version = "1.68.1"
 
 [features]
 crypto-primitives = ["concordium-std/crypto-primitives"]
