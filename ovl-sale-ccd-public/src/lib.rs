@@ -616,7 +616,7 @@ fn contract_create_pool<S: HasStateApi>(
 
     //[#TODO] Check this func is only called after the sale is over.
     // if not need project_refund func
-    let amount = state.saleinfo.amount_of_pjtoken();
+    let amount = state.saleinfo.amount_of_pjtoken()?;
     ensure!(
         amount == params.amount,
         CustomContractError::NotMatchAmount.into()
@@ -744,9 +744,18 @@ fn contract_user_deposit<S: HasStateApi>(
         CustomContractError::AlreadySaleClosed.into()
     );
 
-    let calced_price: Amount = state.saleinfo.calc_price_per_unit() * win_units as u64;
+    let calculated_price = state
+        .saleinfo
+        .calc_price_per_unit()?
+        .micro_ccd
+        .checked_mul(win_units as u64);
     ensure!(
-        amount == calced_price,
+        calculated_price.is_some(),
+        CustomContractError::OverflowError.into()
+    );
+    let calculated_price = Amount::from_micro_ccd(calculated_price.unwrap());
+    ensure!(
+        amount == calculated_price,
         CustomContractError::InvalidCcdInput.into()
     );
     let _ = state.deposit(&sender, amount, win_units)?;

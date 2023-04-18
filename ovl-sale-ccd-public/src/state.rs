@@ -394,14 +394,22 @@ impl SaleInfo {
         }
     }
 
-    pub(crate) fn amount_of_pjtoken(&self) -> ContractTokenAmount {
-        self.token_per_unit * self.applied_units as u64
-        // self.token_per_unit * self.max_units as u64
+    pub(crate) fn amount_of_pjtoken(&self) -> Result<ContractTokenAmount, CustomContractError> {
+        let token_amount = self.token_per_unit.0.checked_mul(self.applied_units as u64);
+        if token_amount.is_none() {
+            bail!(CustomContractError::OverflowError);
+        }
+        Ok(ContractTokenAmount::from(token_amount.unwrap()))
     }
 
-    pub(crate) fn calc_price_per_unit(&self) -> Amount {
-        let price = self.price_per_token * self.token_per_unit.0;
-        Amount::from_micro_ccd(price)
+    pub(crate) fn calc_price_per_unit(&self) -> Result<Amount, CustomContractError> {
+        // Price_per_unit must not exceed 18_446_744_073_709_551_615
+        let price = self.price_per_token.checked_mul(self.token_per_unit.0);
+        if price.is_none() {
+            bail!(CustomContractError::OverflowError);
+        }
+        let price = price.unwrap();
+        Ok(Amount::from_micro_ccd(price))
     }
 }
 
@@ -596,7 +604,7 @@ mod tests {
         let price_per_token: u64 = 2_000_000; //2000ccd
         let token_per_unit: u64 = 900;
         let sale = SaleInfo::new(price_per_token, token_per_unit.into(), 1000, 100).unwrap();
-        let price = sale.calc_price_per_unit();
+        let price = sale.calc_price_per_unit().unwrap();
         claim_eq!(
             price,
             Amount::from_micro_ccd(price_per_token * token_per_unit),
