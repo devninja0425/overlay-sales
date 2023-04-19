@@ -60,6 +60,7 @@ impl<S: HasStateApi> State<S> {
         }
     }
 
+    // TODO should we remove &mut (should not be self mutable function)
     pub(crate) fn calc_vesting_amount(
         &mut self,
         now: Timestamp,
@@ -147,6 +148,7 @@ impl<S: HasStateApi> State<S> {
         self.participants.entry(*user).is_occupied()
     }
 
+    // TODO should we remove &mut (should not be self mutable function)
     pub(crate) fn get_user(&mut self, user: &Address) -> ContractResult<UserState> {
         let user = self
             .participants
@@ -187,8 +189,66 @@ impl<S: HasStateApi> State<S> {
     }
 }
 
+#[cfg(any(feature = "wasm-test", test))]
+/// implements PartialEq for `claim_eq` inside test functions.
+/// this implementation will be build only when `concordium-std/wasm-test` feature is active.
+/// (e.g. when launched by `cargo concordium test`)
+impl<S: HasStateApi> PartialEq for State<S> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.proj_admin != other.proj_admin {
+            return false;
+        }
+        if self.status != other.status {
+            return false;
+        }
+        if self.paused != other.paused {
+            return false;
+        }
+        if self.addr_ovl != other.addr_ovl {
+            return false;
+        }
+        if self.addr_bbb != other.addr_bbb {
+            return false;
+        }
+        if self.ovl_claimed_inc != other.ovl_claimed_inc {
+            return false;
+        }
+        if self.bbb_claimed_inc != other.bbb_claimed_inc {
+            return false;
+        }
+        if self.project_token != other.project_token {
+            return false;
+        }
+        if self.schedule != other.schedule {
+            return false;
+        }
+        if self.saleinfo != other.saleinfo {
+            return false;
+        }
+        if self.participants.iter().count() != other.participants.iter().count() {
+            return false;
+        }
+        for (my_user_address, my_user_state) in self.participants.iter() {
+            let other_user_state = other.participants.get(&my_user_address);
+            if other_user_state.is_none() {
+                return false;
+            }
+            let other_user_state = other_user_state.unwrap();
+            if my_user_state.clone() != other_user_state.clone() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+}
+
 /// Sale Schedule
 #[derive(Debug, Serialize, SchemaType, Clone)]
+#[cfg_attr(any(feature = "wasm-test", test), derive(PartialEq))]
 pub struct SaleSchedule {
     /// IDO schedule(The process is split into some phases)
     pub(crate) open_at: BTreeMap<Timestamp, Prior>,
@@ -281,6 +341,7 @@ impl SaleSchedule {
 
 /// Information about sale
 #[derive(Debug, Serialize, SchemaType, Clone)]
+#[cfg_attr(any(feature = "wasm-test", test), derive(PartialEq))]
 pub struct SaleInfo {
     /// Price in ccd per a project token
     pub(crate) price_per_token: MicroCcd,
@@ -333,14 +394,22 @@ impl SaleInfo {
         }
     }
 
-    pub(crate) fn amount_of_pjtoken(&self) -> ContractTokenAmount {
-        self.token_per_unit * self.applied_units as u64
-        // self.token_per_unit * self.max_units as u64
+    pub(crate) fn amount_of_pjtoken(&self) -> Result<ContractTokenAmount, CustomContractError> {
+        let token_amount = self.token_per_unit.0.checked_mul(self.applied_units as u64);
+        if token_amount.is_none() {
+            bail!(CustomContractError::OverflowError);
+        }
+        Ok(ContractTokenAmount::from(token_amount.unwrap()))
     }
 
-    pub(crate) fn calc_price_per_unit(&self) -> Amount {
-        let price = self.price_per_token * self.token_per_unit.0;
-        Amount::from_micro_ccd(price)
+    pub(crate) fn calc_price_per_unit(&self) -> Result<Amount, CustomContractError> {
+        // Price_per_unit must not exceed 18_446_744_073_709_551_615
+        let price = self.price_per_token.checked_mul(self.token_per_unit.0);
+        if price.is_none() {
+            bail!(CustomContractError::OverflowError);
+        }
+        let price = price.unwrap();
+        Ok(Amount::from_micro_ccd(price))
     }
 }
 
@@ -374,17 +443,49 @@ impl UserState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sctest::init_parameter;
     use crate::test_infrastructure::*;
+    use crate::InitParams;
     #[allow(unused)]
     use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 
+    const PJ_ADMIN_ACC: AccountAddress = AccountAddress([1u8; 32]);
+    const ADDR_OVL: Address = Address::Account(AccountAddress([2u8; 32]));
+    const ADDR_BBB: Address = Address::Contract(ContractAddress {
+        index: 100,
+        subindex: 0,
+    });
     const USER1_ACC: AccountAddress = AccountAddress([10u8; 32]);
     const USER1_ADDR: Address = Address::Account(USER1_ACC);
     const USER2_ACC: AccountAddress = AccountAddress([11u8; 32]);
     const USER2_ADDR: Address = Address::Account(USER2_ACC);
     const USER3_ACC: AccountAddress = AccountAddress([12u8; 32]);
     const USER3_ADDR: Address = Address::Account(USER3_ACC);
+
+    fn init_parameter(vesting_period: BTreeMap<Duration, AllowedPercentage>) -> InitParams {
+        InitParams {
+            proj_admin: PJ_ADMIN_ACC,
+            addr_ovl: ADDR_OVL,
+            addr_bbb: ADDR_BBB,
+            open_at: BTreeMap::from([
+                (Timestamp::from_timestamp_millis(10), Prior::TOP),
+                (Timestamp::from_timestamp_millis(20), Prior::SECOND),
+            ]),
+            close_at: Timestamp::from_timestamp_millis(30),
+            max_units: 100,
+            min_units: 50,
+            price_per_token: 5_000_000,
+            token_per_unit: 200.into(),
+            vesting_period: if vesting_period.is_empty() {
+                BTreeMap::from([
+                    (Duration::from_days(1), 25),
+                    (Duration::from_days(2), 40),
+                    (Duration::from_days(3), 35),
+                ])
+            } else {
+                vesting_period
+            },
+        }
+    }
 
     #[test]
     fn test_invalid_schedule() {
@@ -503,7 +604,7 @@ mod tests {
         let price_per_token: u64 = 2_000_000; //2000ccd
         let token_per_unit: u64 = 900;
         let sale = SaleInfo::new(price_per_token, token_per_unit.into(), 1000, 100).unwrap();
-        let price = sale.calc_price_per_unit();
+        let price = sale.calc_price_per_unit().unwrap();
         claim_eq!(
             price,
             Amount::from_micro_ccd(price_per_token * token_per_unit),

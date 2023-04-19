@@ -1,7 +1,14 @@
 [package]
-edition = "2021"
 name = "sale-utils"
+description = "Utilities for ovl-sale-ccd-public."
 version = "0.1.0"
+authors = ["daratao"]
+edition = "2021"
+license = "MPL-2.0"
+publish = false
+homepage = "https://overlay.global/"
+repository = "https://github.com/overlaydao/overlay-sales"
+rust-version = "1.68.1"
 
 [features]
 default = ["std"]
@@ -13,7 +20,7 @@ concordium-cis2 = "3.0.0"
 
 [dependencies.concordium-std]
 default-features = false
-version = "6.0.0"
+version = "6.1.0"
 
 [lib]
 crate-type = ["rlib"]

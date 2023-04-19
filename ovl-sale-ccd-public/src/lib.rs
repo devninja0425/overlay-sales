@@ -1,4 +1,5 @@
 //! This Contract is used for public sale with CCD on the Overlay IDO platform.
+#[cfg(any(feature = "wasm-test", test))]
 mod sctest;
 mod state;
 mod view;
@@ -10,9 +11,7 @@ use concordium_std::{collections::BTreeMap, *};
 use sale_utils::{PUBLIC_RIDO_FEE, PUBLIC_RIDO_FEE_BBB, PUBLIC_RIDO_FEE_OVL};
 use state::{State, *};
 
-///
-///
-///
+/// The parameter schema for `init` function.
 #[derive(Debug, Serialize, SchemaType)]
 pub struct InitParams {
     /// Account of the administrator of the entity running the IDO
@@ -617,7 +616,7 @@ fn contract_create_pool<S: HasStateApi>(
 
     //[#TODO] Check this func is only called after the sale is over.
     // if not need project_refund func
-    let amount = state.saleinfo.amount_of_pjtoken();
+    let amount = state.saleinfo.amount_of_pjtoken()?;
     ensure!(
         amount == params.amount,
         CustomContractError::NotMatchAmount.into()
@@ -745,9 +744,18 @@ fn contract_user_deposit<S: HasStateApi>(
         CustomContractError::AlreadySaleClosed.into()
     );
 
-    let calced_price: Amount = state.saleinfo.calc_price_per_unit() * win_units as u64;
+    let calculated_price = state
+        .saleinfo
+        .calc_price_per_unit()?
+        .micro_ccd
+        .checked_mul(win_units as u64);
     ensure!(
-        amount == calced_price,
+        calculated_price.is_some(),
+        CustomContractError::OverflowError.into()
+    );
+    let calculated_price = Amount::from_micro_ccd(calculated_price.unwrap());
+    ensure!(
+        amount == calculated_price,
         CustomContractError::InvalidCcdInput.into()
     );
     let _ = state.deposit(&sender, amount, win_units)?;
@@ -894,12 +902,11 @@ fn contract_user_claim<S: HasStateApi>(
             from: Address::from(ctx.self_address()),
             to,
             token_id: TokenIdUnit(),
-            amount: ContractTokenAmount::from(amount),
+            amount,
             data: AdditionalData::empty(),
         };
 
         let project_token = state.project_token.unwrap();
-
         let _ = host.invoke_contract(
             &project_token,
             &TransferParams::from(vec![transfer]),
