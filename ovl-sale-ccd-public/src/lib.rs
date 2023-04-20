@@ -190,6 +190,17 @@ fn contract_set_fixed<S: HasStateApi>(
 /// Parameter type for the contract function `whitelisting`.
 /// Currently user can be both account and contract.
 /// [#TODO] But need to consider when user can be contract.
+// Parameter type for the contract function `whitelisting`.
+/// Currently user can be both account and contract.
+/// [#TODO] But need to consider when user can be contract.
+#[derive(Debug, Serialize, SchemaType)]
+struct WhitelistingParams {
+    /// the whitelist
+    wl: Vec<AllowedUserParams>,
+    /// If true, it means no further registration
+    ready: bool,
+}
+
 #[derive(Debug, Serialize, SchemaType)]
 struct AllowedUserParams {
     /// Users address to be whitelisted
@@ -209,7 +220,7 @@ struct AllowedUserParams {
 #[receive(
     contract = "pub_rido_ccd",
     name = "whitelisting",
-    parameter = "Vec<AllowedUserParams>",
+    parameter = "WhitelistingParams",
     error = "ContractError",
     mutable
 )]
@@ -229,19 +240,21 @@ fn contract_whitelisting<S: HasStateApi>(
         CustomContractError::AlreadySaleStarted.into()
     );
 
-    let params: Vec<AllowedUserParams> = ctx.parameter_cursor().get()?;
+    let params: WhitelistingParams = ctx.parameter_cursor().get()?;
 
     // all can purchase only 1 unit;
-    for AllowedUserParams { user, prior } in params {
+    for AllowedUserParams { user, prior } in params.wl {
         if let Address::Account(_) = user {
-            state.whitelist(&user, prior);
+            state.whitelisting(&user, prior);
         } else {
             // [#TODO] Only support AccountAddress for now.
             bail!(CustomContractError::AccountOnly.into())
         };
     }
 
-    state.status = SaleStatus::Ready;
+    if params.ready {
+        state.status = SaleStatus::Ready;
+    }
 
     Ok(())
 }
