@@ -112,10 +112,8 @@ impl<S: HasStateApi> State<S> {
         }
     }
 
-    pub(crate) fn whitelist(&mut self, user: &Address, prior: Prior) {
-        // [#Caution] if the user exists, the state is overwritten.
-        let _ = self
-            .participants
+    pub(crate) fn whitelisting(&mut self, user: &Address, prior: Prior) {
+        self.participants
             .entry(*user)
             .or_insert_with(|| UserState::new(prior, Amount::zero(), TARGET_UNITS));
     }
@@ -557,7 +555,7 @@ mod tests {
             (&USER2_ADDR, Prior::TOP),
         ];
         for v in users.into_iter() {
-            state.whitelist(v.0, v.1);
+            state.whitelisting(v.0, v.1);
         }
 
         assert_eq!(
@@ -653,7 +651,7 @@ mod tests {
         // whitelisted
         let users = vec![(&USER1_ADDR, Prior::TOP), (&USER2_ADDR, Prior::SECOND)];
         for v in users.into_iter() {
-            state.whitelist(v.0, v.1);
+            state.whitelisting(v.0, v.1);
         }
 
         assert!(state.check_listed(&USER1_ADDR), "user1 should exist!");
