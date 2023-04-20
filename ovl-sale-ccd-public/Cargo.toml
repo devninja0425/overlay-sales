@@ -1,17 +1,17 @@
 [package]
-name = "ovl-sale-ccd-public"
-description = "Concordium smart contract modelling sales information of projects listed in OVERLAY."
-version = "0.2.2"
 authors = [
-    "daratao",
-    "Hiroki Tanaka <hiroki.tanaka@kumano-te.com>"
+  "daratao",
+  "Hiroki Tanaka <hiroki.tanaka@kumano-te.com>",
 ]
+description = "Concordium smart contract modelling sales information of projects listed in OVERLAY."
 edition = "2021"
-license = "MPL-2.0"
-publish = false
 homepage = "https://overlay.global/"
+license = "MPL-2.0"
+name = "ovl-sale-ccd-public"
+publish = false
 repository = "https://github.com/overlaydao/overlay-sales"
 rust-version = "1.68.1"
+version = "0.3.0"
 
 [features]
 crypto-primitives = ["concordium-std/crypto-primitives"]
@@ -21,8 +21,8 @@ wasm-test = ["concordium-std/wasm-test", "concordium-std/concordium-quickcheck"]
 
 [dependencies]
 concordium-cis2 = "3.0.0"
-concordium-std = { version = "6.1.0", default-features = false }
-sale-utils = { path = "../sale-utils" }
+concordium-std = {version = "6.1.0", default-features = false}
+sale-utils = {path = "../sale-utils"}
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -32,4 +32,4 @@ codegen-units = 1
 opt-level = "s"
 
 [dev-dependencies]
-concordium-std = { version = "6.1.0", features = ["concordium-quickcheck"] }
+concordium-std = {version = "6.1.0", features = ["concordium-quickcheck"]}
