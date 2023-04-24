@@ -190,9 +190,6 @@ fn contract_set_fixed<S: HasStateApi>(
 /// Parameter type for the contract function `whitelisting`.
 /// Currently user can be both account and contract.
 /// [#TODO] But need to consider when user can be contract.
-// Parameter type for the contract function `whitelisting`.
-/// Currently user can be both account and contract.
-/// [#TODO] But need to consider when user can be contract.
 #[derive(Debug, Serialize, SchemaType)]
 struct WhitelistingParams {
     /// the whitelist
